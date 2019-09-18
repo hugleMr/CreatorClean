@@ -3,7 +3,6 @@ const fs = require("fs");
 const ffs = require("fire-fs")
 
 let utils = {
-
     /**
      * @param {string} fileName 
      * @param {string} lookingForString 

@@ -1,5 +1,4 @@
 'use strict';
-
 exports.load = function () {
 
 };
