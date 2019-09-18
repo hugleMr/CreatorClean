@@ -190,7 +190,7 @@ var createVM = function (elem) {
             },
 
             goHub() {
-                cp.exec('start https://github.com/shpz/CreatorClean/blob/master/README.MD');
+                cp.exec('start https://github.com/hugleMr/CreatorClean/blob/master/README.MD');
             },
 
             deleteRes(url, items) {
