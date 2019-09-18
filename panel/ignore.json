@@ -17,7 +17,8 @@
         "db://internal/prefab/toggle.prefab",
         "db://internal/prefab/toggleGroup.prefab",
         "db://internal/prefab/webview.prefab",
-        "db://internal/prefab/videoplayer.prefab"
+        "db://internal/prefab/videoplayer.prefab",
+        "db://internal/model/primitives.fbx/primitives.prefab"
     ],
     "scene": []
 }

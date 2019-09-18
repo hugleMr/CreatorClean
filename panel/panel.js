@@ -31,67 +31,56 @@ var createVM = function (elem) {
 
             refresh() {
                 let adb = Editor.assetdb;
-                let customIgnore = this.splitInput(this.input);
+                let self = this;
+                let custIngnore = this.splitInput(this.input)
 
                 this.items.length = 0;
                 this.items = [];
+                let callback = function (objs, results) {
+                    objs.forEach(function (obj) {
+                        if (self.ignore.prefab.indexOf(obj.url) != -1) {
+                            return;
+                        }
+                        let json = FFs.readJsonSync(obj.path);
 
-                let callback = (objs, results) => {
-                    objs.forEach(
-                        (obj) => {
-                            if (this.ignore.prefab.indexOf(obj.url) != -1) {
-                                console.log('Creator\'s prefab.');
+                        results.forEach(function (result) {
+                            if (result.url.indexOf('/default_') !== -1) {
+                                result.contain = true;
                                 return;
                             }
 
-                            let text = FFs.readFileSync(obj.path, 'utf-8');
-                            results.forEach(function (result) {
-                                if (result.url.indexOf('/default_') !== -1) {
+                            for (let i = 0; i < custIngnore.length; i++) {
+                                if (result.url.indexOf(custIngnore[i]) !== -1) {
                                     result.contain = true;
                                     return;
                                 }
+                            }
 
-                                for (let i = 0; i < customIgnore.length; i++) {
-                                    if (result.url.indexOf(customIgnore[i]) !== -1) {
-                                        result.contain = true;
-                                        return;
-                                    }
-                                }
+                            if (
+                                self.resources &&
+                                result.url.indexOf('db://assets/resources') !== -1
+                            ) {
+                                result.contain = true;
+                                return;
+                            }
 
-                                if (
-                                    this.resources &&
-                                    result.url.indexOf('db://assets/resources') !== -1
-                                ) {
-                                    result.contain = true;
-                                    return;
-                                }
+                            if (
+                                json['__type__'] === 'cc.AnimationClip' &&
+                                self.searchClip(json, result.uuid)
+                            ) {
+                                result.contain = true;
+                                return;
+                            }
 
-                                if (
-                                    (typeof text) === 'string' &&
-                                    this.searchBf(text, result.url)
-                                ) {
-                                    result.contain = true;
-                                    return;
-                                }
-
-                                if (
-                                    text['__type__'] === 'cc.AnimationClip' &&
-                                    this.searchClip(text, result.uuid)
-                                ) {
-                                    result.contain = true;
-                                    return;
-                                }
-
-
-                                result.contain =
-                                    result.contain ?
-                                        true :
-                                        this.search(text, result.uuid);
-                            });
+                            result.contain =
+                                result.contain ?
+                                    true :
+                                    self.search(json, result.uuid);
                         });
+                    });
 
                     results.forEach(function (result) {
-                        result.contain == true ? '' : this.items.push({
+                        result.contain == true ? '' : self.items.push({
                             url: result.url,
                             uuid: result.uuid
                         });
@@ -100,17 +89,16 @@ var createVM = function (elem) {
 
                 adb.queryAssets(
                     null,
-                    ['scene', 'prefab', 'animation-clip', 'bitmap-font'],
+                    ['scene', 'prefab', 'animation-clip'],
                     function (err, objs) {
                         adb.queryAssets(
                             null,
-                            this.type,
+                            self.type,
                             function (err, results) {
                                 callback(objs, results);
                             }
                         );
-                    }
-                );
+                    });
             },
 
             /** 
@@ -119,10 +107,10 @@ var createVM = function (elem) {
              * @argument {String}           uuid
              */
             search(json, uuid) {
-
+                let self = this;
                 if (json instanceof Array) {
                     for (let i = 0; i < json.length; i++) {
-                        if (this.search(json[i], uuid)) {
+                        if (self.search(json[i], uuid)) {
                             return true;
                         }
                     }
@@ -132,13 +120,13 @@ var createVM = function (elem) {
                         return json._spriteFrame.__uuid__ == uuid;
                     }
                     else if (json['__type__'] === 'cc.Button') {
-                        return this.searchButton(json, uuid);
+                        return self.searchButton(json, uuid);
                     }
                     else if (json['__type__'] && json['__type__'].length > 20) {
                         if (Editor.Utils.UuidUtils.isUuid(
                             Editor.Utils.UuidUtils.decompressUuid(json['__type__'])
                         )) {
-                            return this.searchScript(json, uuid);
+                            return self.searchScript(json, uuid);
                         }
                     }
                 }
@@ -180,7 +168,7 @@ var createVM = function (elem) {
              * @argument {String}   uuid    target.uuid
              */
             searchClip(json, uuid) {
-
+                let self = this;
                 let spriteFrame = [];
                 let paths = this.getValue(json, 'paths');
                 if (paths) {
@@ -188,7 +176,7 @@ var createVM = function (elem) {
                         spriteFrame = this.getValue(paths[i], 'spriteFrame');
                         if (spriteFrame) {
                             for (let i = 0; i < spriteFrame.length; i++) {
-                                if (spriteFrame[i] && spriteFrame[i].value && spriteFrame[i].value.__uuid__ && spriteFrame[i].value.__uuid__ === uuid) {
+                                if (spriteFrame[i] && spriteFrame[i].value.__uuid__ && spriteFrame[i].value.__uuid__ === uuid) {
                                     return true;
                                 }
                             }
@@ -199,7 +187,7 @@ var createVM = function (elem) {
                     spriteFrame = this.getValue(json, 'spriteFrame');
                     if (spriteFrame) {
                         for (let i = 0; i < spriteFrame.length; i++) {
-                            if (spriteFrame[i].value && spriteFrame[i].value.__uuid__ === uuid) {
+                            if (spriteFrame[i].value.__uuid__ === uuid) {
                                 return true;
                             }
                         }
@@ -207,17 +195,6 @@ var createVM = function (elem) {
                 }
 
                 return false;
-            },
-
-            searchBf(str, url) {
-                let start = url.lastIndexOf('/') + 1;
-                let textureName = url.slice(start, url.length);
-
-                if (str.indexOf(textureName) == -1) {
-                    return false;
-                }
-
-                return true;
             },
 
             /**
@@ -264,7 +241,7 @@ var createVM = function (elem) {
                     Editor.assetdb.remote.exists(picUrl) ? urlArr.push(picUrl) : '';
                 }
                 this.deleteRes(urlArr, this.items);
-                Editor.log("删除全部成功！");
+                Editor.log("Delete all！");
             },
 
             getPicUrl(url) {
@@ -290,14 +267,14 @@ var createVM = function (elem) {
             },
 
             deleteRes(url, items) {
-
+                let self = this;
                 let adb = Editor.assetdb;
                 if (url.length > 1) {
                     this.refresh();
                 }
                 else {
                     let index = items.findIndex(function (item, index, array) {
-                        return this.getPicUrl(item.url) == url[0];
+                        return self.getPicUrl(item.url) == url[0];
                     });
                     index == -1 ? '' : items.splice(index, 1);
                 }
