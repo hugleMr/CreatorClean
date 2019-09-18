@@ -2,7 +2,7 @@
     <header>
         <i class="fa fa-refresh" aria-hidden="true" title="Refresh" @click="refresh"></i>
         <i class="fa fa-times-circle" aria-hidden="true" title="Delete all unused resources" @click="onDeleteAllClick"></i>
-        <i class="fa fa-picture-o"> {{items.length}} </i>
+        <i class="fa fa-picture-o"> = {{items.length}} </i>
     </header>
 
     <section class="res">
@@ -34,10 +34,4 @@
         </ul>
     </section>
     <br/>
-
-    <div class="help" style="cursor:pointer;" @click="goHub">
-        support me
-        <br/>
-        <i class="fa fa-github"> https://github.com/shpz/CreatorClean </i>
-    </div>
 </div>
